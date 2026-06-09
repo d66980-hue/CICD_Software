@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+
+  # ── Spring Boot application ──────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: spring-bdd-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/springbdd?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: springuser
+      SPRING_DATASOURCE_PASSWORD: springpass
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+  # ── MySQL database ───────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: spring-bdd-db
+    environment:
+      MYSQL_DATABASE: springbdd
+      MYSQL_USER: springuser
+      MYSQL_PASSWORD: springpass
+      MYSQL_ROOT_PASSWORD: rootpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uspringuser", "-pspringpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:
